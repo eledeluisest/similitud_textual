@@ -1,4 +1,9 @@
 import nltk
+# nltk.download('averaged_perceptron_tagger')
+# nltk.download('wordnet')
+from nltk.corpus import wordnet as wn
+from nltk import pos_tag
+from nltk.tokenize import RegexpTokenizer
 import pandas as pd
 with open("corpus/stsbenchmark/sts-train.csv", "r", encoding='utf-8') as f:
     texto = [x.replace('\n','').split('\t') for x in f.readlines()]
@@ -23,6 +28,16 @@ for col in df_train.columns:
     print(df_train[col].value_counts())
     print("="*100)
 
+tokenizer = RegexpTokenizer(r'\w+')
+df_train['s1_tokenized'] = df_train['s1'].str.lower().apply(tokenizer.tokenize)
+df_train['s2_tokenized'] = df_train['s2'].str.lower().apply(tokenizer.tokenize)
+
+df_train['s1_tag'] = df_train['s1_tokenized'].apply(pos_tag)
+df_train['s2_tag'] = df_train['s2_tokenized'].apply(pos_tag)
+
+pos_tag(df_train['s1_tokenized'].iloc[0])
+
+wn.synsets(lemma=df_train['s1_tag'].iloc[0][0][0], pos=df_train['s1_tag'].iloc[0][0][1])
 """
 genero
 main-news        3299
