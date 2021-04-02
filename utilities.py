@@ -25,8 +25,8 @@ from nltk.tokenize import RegexpTokenizer
 import pandas as pd
 import numpy as np
 
-
-def f_tokeniza_y_estructura(file):
+print("loading utilities...")
+def f_tokeniza_y_estructura(file, nrow=-1):
     """
     Lee fichero y lo estructura en un dataframe de pandas. Despues aplica tecnicas de tokenizado y eliminacion de stopwords
     :param file: fichero de lectura
@@ -38,8 +38,12 @@ def f_tokeniza_y_estructura(file):
     texto_no7col = [t for t in texto if len(t) != 7]
     texto_corregido = [x[:7] for x in texto_no7col]
     texto_7col.extend(texto_corregido)
-    df_train = pd.DataFrame(texto_7col,
-                            columns=['genero', 'dataset', 'ano', 'num1', 'num2', 's1', 's2'])
+    if nrow > 0:
+        df_train = pd.DataFrame(texto_7col[:nrow],
+                                columns=['genero', 'dataset', 'ano', 'num1', 'num2', 's1', 's2'])
+    else:
+        df_train = pd.DataFrame(texto_7col,
+                                columns=['genero', 'dataset', 'ano', 'num1', 'num2', 's1', 's2'])
     df_train['num2'] = df_train['num2'].astype(float)
 
     tokenizer = RegexpTokenizer(r'\w+')
@@ -53,6 +57,9 @@ def f_tokeniza_y_estructura(file):
 
     df_train['s1_tag'] = df_train['s1_tokenized'].apply(pos_tag)
     df_train['s2_tag'] = df_train['s2_tokenized'].apply(pos_tag)
+
+    df_train['s1_tag_nosw'] = df_train['s1_tok_nosw'].apply(pos_tag)
+    df_train['s2_tag_nosw'] = df_train['s2_tok_nosw'].apply(pos_tag)
 
     return df_train
 
@@ -70,12 +77,12 @@ def f_devuelve_synset(palabra, pos):
         return wn.synsets(lemma=palabra)
 
 
-def f_devuelve_sim_syn(list_syn1, list_syn2, tipo_dist, corpus='wordnet_ic', verbose=False):
+def f_devuelve_sim_syn(list_syn1, list_syn2, tipo_dist, corpus='wordnet_ic', corpus_ic = None, verbose=False):
     """
     Calculo de la similitud entre synsets como el maximo de las similitudes entre todos los miembros de ambos synsets.
     :param list_syn1: Lista de synsets correspondientes a la primera palabra
     :param list_syn2:  Lista de synsets correspondientes a la segunda palabra
-    :param tipo_dist: Tipo de similitud que se quiere calcular: path, lch, wup, rep, jcn o lin. Las tres ultimas solo se pueden calcular con lso corpus brown_ic y semcor_ic
+    :param tipo_dist: Tipo de similitud que se quiere calcular: path, lch, wup, res, jcn o lin. Las tres ultimas solo se pueden calcular con lso corpus brown_ic y semcor_ic
     :param corpus: corpus para el calculo de la similitud wordnet_ic, brown_ic o semcor_ic
     :param verbose:
     :return: Similitud entre palabras (float)
@@ -104,7 +111,7 @@ def f_devuelve_sim_syn(list_syn1, list_syn2, tipo_dist, corpus='wordnet_ic', ver
                 if sim != None:
                     similitud.append(sim)
     elif corpus == 'brown_ic':
-        brown_ic = wordnet_ic.ic('ic-brown.dat')
+        brown_ic = corpus_ic
         for syn1 in list_syn1:
             for syn2 in list_syn2:
                 if verbose:
@@ -119,15 +126,33 @@ def f_devuelve_sim_syn(list_syn1, list_syn2, tipo_dist, corpus='wordnet_ic', ver
                 elif tipo_dist == 'wup':
                     sim = syn1.wup_similarity(syn2, brown_ic)
                 elif tipo_dist == 'res':
-                    sim = syn1.res_similarity(syn2, brown_ic)
+                    if syn1.pos() == syn2.pos():
+                        try:
+                            sim = syn1.res_similarity(syn2, brown_ic)
+                        except Exception as e:
+                            sim = 0
+                    else:
+                        sim = 0
                 elif tipo_dist == 'jcn':
-                    sim = syn1.jcn_similarity(syn2, brown_ic)
+                    if syn1.pos() == syn2.pos():
+                        try:
+                            sim = syn1.jcn_similarity(syn2, brown_ic)
+                        except Exception as e:
+                            sim = 0
+                    else:
+                        sim = 0
                 elif tipo_dist == 'lin':
-                    sim = syn1.lin_similarity(syn2, brown_ic)
+                    if syn1.pos() == syn2.pos():
+                        try:
+                            sim = syn1.lin_similarity(syn2, brown_ic)
+                        except Exception as e:
+                            sim = 0
+                    else:
+                        sim = 0
                 if sim != None:
                     similitud.append(sim)
     elif corpus == 'semcor_ic':
-        semcor_ic = wordnet_ic.ic('ic-semcor.dat')
+        semcor_ic = corpus_ic
         for syn1 in list_syn1:
             for syn2 in list_syn2:
                 if verbose:
@@ -142,11 +167,29 @@ def f_devuelve_sim_syn(list_syn1, list_syn2, tipo_dist, corpus='wordnet_ic', ver
                 elif tipo_dist == 'wup':
                     sim = syn1.wup_similarity(syn2, semcor_ic)
                 elif tipo_dist == 'res':
-                    sim = syn1.res_similarity(syn2, semcor_ic)
+                    if syn1.pos() == syn2.pos():
+                        try:
+                            sim = syn1.res_similarity(syn2, semcor_ic)
+                        except Exception as e:
+                            sim = 0
+                    else:
+                        sim = 0
                 elif tipo_dist == 'jcn':
-                    sim = syn1.jcn_similarity(syn2, semcor_ic)
+                    if syn1.pos() == syn2.pos():
+                        try:
+                            sim = syn1.jcn_similarity(syn2, semcor_ic)
+                        except Exception as e:
+                            sim = 0
+                    else:
+                        sim = 0
                 elif tipo_dist == 'lin':
-                    sim = syn1.lin_similarity(syn2, semcor_ic)
+                    if syn1.pos() == syn2.pos():
+                        try:
+                            sim = syn1.lin_similarity(syn2, semcor_ic)
+                        except Exception as e:
+                            sim = 0
+                    else:
+                        sim = 0
                 if sim != None:
                     similitud.append(sim)
     if len(similitud) > 0:
@@ -172,9 +215,12 @@ def f_devuelve_align(oracion1, oracion2, verbose=False):
             if p1 == p2 and not encontrado:
                 alineamiento.append(1)
                 encontrado = True
-    return 2*sum(alineamiento)/(len(oracion1)+len(oracion2))
+    if len(oracion1) > 0 and len(oracion2) > 0:
+        return 2*sum(alineamiento)/(len(oracion1)+len(oracion2))
+    else:
+        return 0
 
-def f_devuelve_align_rel(oracion1, oracion2, tipo_dist = 'path', corpus='wordnet_ic', umbral = 0.8, verbose=False):
+def f_devuelve_align_rel(oracion1, oracion2, tipo_dist = 'path', corpus='wordnet_ic', corpus_ic = None, umbral = 0.8, verbose=False):
     """
     Calculo relajado del alineamiento teniendo en cuenta similitud semantica entre palabras y umbrales para medir el acierto.
     :param oracion1: lista de palabras y etiquetas de la primera oracion
@@ -194,14 +240,17 @@ def f_devuelve_align_rel(oracion1, oracion2, tipo_dist = 'path', corpus='wordnet
         for p2, t2 in oracion2:
             if primera_vuelta:
                 dic_sin2[p2] = f_devuelve_synset(p2, t2)
-            sim = f_devuelve_sim_syn(sin1, dic_sin2[p2], tipo_dist, corpus)
+            sim = f_devuelve_sim_syn(sin1, dic_sin2[p2], tipo_dist, corpus, corpus_ic)
             if verbose:
                 print(p1, p2)
             if sim > umbral and not encontrado:
                 alineamiento.append(1)
                 encontrado = True
         primera_vuelta = False
-    return 2*sum(alineamiento)/(len(oracion1)+len(oracion2))
+    if len(oracion1) > 0 and len(oracion2) > 0:
+        return 2*sum(alineamiento)/(len(oracion1)+len(oracion2))
+    else:
+        return 0
 
 def f_idf(palabra, palabras):
     """
@@ -216,9 +265,10 @@ def f_idf(palabra, palabras):
     else:
         return 0
 
-def f_devuelve_mihalcea(oracion1, oracion2,palabras_corpus, tipo_dist = 'path', verbose=False):
+def f_devuelve_mihalcea(oracion1, oracion2,palabras_corpus, tipo_dist = 'path', corpus='wordnet_ic', corpus_ic = None, verbose=False):
     """
     Calculo de la metrica de similitud de milhacea.
+    :param corpus_ic:
     :param oracion1: Lista con palabras y etiquetas de la primera oracion
     :param oracion2: Lista con palabras y etiquetas de la segunda oracon
     :param palabras_corpus:  Lista con palabras de algun corpus para el calculo del idf
@@ -241,25 +291,36 @@ def f_devuelve_mihalcea(oracion1, oracion2,palabras_corpus, tipo_dist = 'path', 
                 sinsets2[p2] = sin2
                 idf2 = f_idf(p2, palabras_corpus)
                 dic_idf_or2[p2] = idf2
-            similitudes[(p1, p2)] = f_devuelve_sim_syn(sin1, sinsets2[p2], tipo_dist)
+            similitudes[(p1, p2)] = f_devuelve_sim_syn(sin1, sinsets2[p2], tipo_dist, corpus, corpus_ic)
         primera_vuelta = False
     den1 = sum(dic_idf_or1.values())
     den2 = sum(dic_idf_or2.values())
     num1 = 0
     for p1, t1 in oracion1:
-        posibilidad = []
+        posibilidad = [0]
         for k in similitudes.keys():
             if k[0] == p1:
                 posibilidad.append(similitudes[k])
-        num1 += dic_idf_or1[p1] * max(posibilidad)
+        try:
+            num1 += dic_idf_or1[p1] * max(posibilidad)
+        except Exception as e:
+            print(e)
+            print(oracion1)
     num2 = 0
     for p2, t2 in oracion2:
-        posibilidad = []
+        posibilidad = [0]
         for k in similitudes.keys():
             if k[1] == p2:
                 posibilidad.append(similitudes[k])
-        num2 += dic_idf_or2[p2] * max(posibilidad)
-    return 0.5*(num1/den1 + num2/den2)
+        try:
+            num2 += dic_idf_or2[p2] * max(posibilidad)
+        except Exception as e:
+            print(e)
+            print(oracion2)
+    if den1 == 0 or den2 == 0:
+        return 0
+    else:
+        return 0.5*(num1/den1 + num2/den2)
 
 def f_sim_cosin_vw(w1, w2, model):
     """
@@ -307,7 +368,7 @@ def f_devuelve_align_rel_vw(oracion1, oracion2, model, tipo_sim = 'cosin', umbra
     :param oracion1: lista de palabras y etiquetas de la primera oracion
     :param oracion2: lista de palabras y etiquetas de la segunda oracion
     :param tipo_dist: forma de medir la similitud entre palabras: cosin, dot o dist.
-c
+    :param model: modelo
     :param umbral: umbral para considerar el aciert
     :param verbose:
     :return: metrica de alineamiento relajado (float)
@@ -327,7 +388,10 @@ c
             if sim > umbral and not encontrado:
                 alineamiento.append(1)
                 encontrado = True
-    return 2*sum(alineamiento)/(len(oracion1)+len(oracion2))
+    if len(oracion1) > 0 and len(oracion2) > 0:
+        return 2*sum(alineamiento)/(len(oracion1)+len(oracion2))
+    else:
+        return 0
 
 def f_devuelve_mihalcea_vw(oracion1, oracion2, model, palabras_corpus, tipo_sim = 'cosin'):
     """
@@ -365,18 +429,34 @@ def f_devuelve_mihalcea_vw(oracion1, oracion2, model, palabras_corpus, tipo_sim 
     den2 = sum(dic_idf_or2.values())
     num1 = 0
     for p1, t1 in oracion1:
-        posibilidad = []
+        posibilidad = [0]
         for k in similitudes.keys():
             if k[0] == p1:
-                posibilidad.append(similitudes[k])
-        num1 += dic_idf_or1[p1] * max(posibilidad)
+                try:
+                    posibilidad.append(similitudes[k])
+                except Exception as e:
+                    print(e)
+                    print(oracion1)
+        try:
+            num1 += dic_idf_or1[p1] * max(posibilidad)
+        except Exception as e:
+            print(e)
+            print(oracion1)
     num2 = 0
     for p2, t2 in oracion2:
-        posibilidad = []
+        posibilidad = [0]
         for k in similitudes.keys():
             if k[1] == p2:
-                posibilidad.append(similitudes[k])
-        num2 += dic_idf_or2[p2] * max(posibilidad)
+                try:
+                    posibilidad.append(similitudes[k])
+                except Exception as e:
+                    print(e)
+                    print(oracion2)
+        try:
+            num2 += dic_idf_or2[p2] * max(posibilidad)
+        except Exception as e:
+            print(e)
+            print(oracion2)
     return 0.5*(num1/den1 + num2/den2)
 
 
