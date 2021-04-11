@@ -457,7 +457,10 @@ def f_devuelve_mihalcea_vw(oracion1, oracion2, model, palabras_corpus, tipo_sim 
         except Exception as e:
             print(e)
             print(oracion2)
-    return 0.5*(num1/den1 + num2/den2)
+    if den1 == 0 or den2 == 0:
+        return 0
+    else:
+        return 0.5*(num1/den1 + num2/den2)
 
 
 
